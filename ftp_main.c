@@ -10,6 +10,7 @@
 
 int main(int argc, char *argv[])
 {
+	int b = 1;
 	printf("ftp_client\n");
 	return FTP_OK;
 }
