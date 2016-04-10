@@ -7,4 +7,6 @@
 #ifndef _FTP_SESSION_H_
 #define _FTP_SESSION_H_
 
+#define FTP_PORT_DEFAULT    (21)
+
 #endif

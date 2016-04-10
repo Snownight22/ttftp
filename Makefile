@@ -1,16 +1,21 @@
 CC = gcc
-DEBUG =
+DEBUG = -g
 INC = -I./include/ 
 LIBS = 
+CFLAGS =
 
-SRC = ftp_main.c
+SRC_DIR = .        \
+          session  \
+		  command 
 
-OBJ = ftpclient
+SRC = $(foreach dir,$(SRC_DIR), $(wildcard $(dir)/*.c))
+
+BIN = ftpclient
 
 all:$(SRC)
-	$(CC) $(SRC) $(DEBUG) $(INC) $(LIBS) -o $(OBJ)
+	$(CC) $(SRC) $(CFLAGS) $(DEBUG) $(INC) $(LIBS) -o $(BIN)
 
 .PHONY:
 
 clean:
-	rm -rf $(OBJ)
+	rm -rf $(BIN)

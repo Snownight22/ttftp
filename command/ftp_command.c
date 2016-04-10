@@ -7,5 +7,5 @@
 #include <stdio.h>
 
 #include "ftp_err.h"
-#include "ftp_comman.h"
+#include "ftp_command.h"
 

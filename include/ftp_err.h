@@ -10,5 +10,8 @@
 #define FTP_OK    (0)
 #define FTP_ERR   (-1)
 
+#define FTP_SOCKET_ERR     (-2)
+#define FTP_CONNECT_FAIL   (-3)
+#define FTP_GETHOST_FAIL   (-4)
 
 #endif
