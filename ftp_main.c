@@ -8,10 +8,11 @@
 
 #include "ftp_err.h"
 
-extern int ftp_session_create(char *ftpDomain, int ftpPort);
+extern int ftp_command_proc(char *domain, int port);
 
 int main(int argc, char *argv[])
 {
-	ftp_session_create("mirrors.ustc.edu.cn", 0);
+	ftp_command_proc(NULL, 0);
+	//ftp_session_create("192.168.29.152", 0);
 	return FTP_OK;
 }
