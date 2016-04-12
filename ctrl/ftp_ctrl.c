@@ -20,6 +20,26 @@ static stFtpCommand g_ctrl_commands[] =
 	{"password", "PASS", FTP_SERVER_CONNECTED, FTP_IDENTIFY_INVALID, NULL},
 };
 
+static int command_analysis(char *string, char *command, char *args)
+{
+	int length = strlen(string);
+	int i;
+
+	strncpy(command, string, length);
+	for (i = 0;i < length; i++)
+	{
+		if ((string[i] == ' ') ||
+			(string[i] == '\t'))
+		{
+			string[i] = '\0';
+			strcpy(command, string);
+			strcpy(args, &string[i+1]);
+		}
+	}
+
+	return FTP_OK;
+}
+
 int ftp_ctrl_identify(void *arg1, void *arg2)
 {
 	stFtpContext *fc = (stFtpContext *)arg1;
@@ -66,12 +86,15 @@ int ftp_ctrl_identify(void *arg1, void *arg2)
 int ftp_ctrl_session(void *arg1, void *arg2)
 {
 	stFtpContext *fc = (stFtpContext *)arg1;
+	char *domain = (char *)arg2;
 	char command[128] = {0};
 	char reply[1024] = {0};
 	char user[32] = {0};
 	int length;
 	int ret;
 
+	if (NULL != domain)
+		strncpy(fc->ftpDomain, domain, strlen(domain));
 	if (0 <= (ret = ftp_session_create(fc->ftpDomain, fc->ftpPort)))
 	{
 		fc->serverfd = ret;
@@ -103,6 +126,8 @@ int ftp_ctrl_proc(char *domain, int port)
 	stFtpCommand *ctrl = g_ctrl_commands;
 	//char *ftpDomain = domain;
 	char command[128] = {0};
+	char input[128] = {0};
+	char args[128] = {0};
 	char reply[1024] = {0};
 	char user[32] = {0};
 	int length;
@@ -120,9 +145,12 @@ int ftp_ctrl_proc(char *domain, int port)
 	while(1)
 	{
 		fprintf(stdout, FTP_COMMAND_PROMPT);
-		fgets(command, 127, stdin);
-		length = strlen(command);
-		command[length-1] = '\0';
+		fgets(input, 127, stdin);
+		length = strlen(input);
+		input[length-1] = '\0';
+		memset(command, 0, sizeof(command));
+		memset(args, 0, sizeof(args));
+		command_analysis(input, command, args);
 		if (!strcmp(command, "quit"))
 		{
 			fprintf(stdout, "byebye\n");
@@ -133,7 +161,8 @@ int ftp_ctrl_proc(char *domain, int port)
 		{
 			if (!strcmp(command, ctrl[i].command))
 			{
-				ctrl[i].func(fc, command);
+				if (ctrl[i].func)
+					ctrl[i].func(fc, args);
 			}
 		}
 	}
