@@ -6,7 +6,7 @@ CFLAGS =
 
 SRC_DIR = .        \
           session  \
-		  command 
+		  ctrl 
 
 SRC = $(foreach dir,$(SRC_DIR), $(wildcard $(dir)/*.c))
 
