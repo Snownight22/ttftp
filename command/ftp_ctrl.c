@@ -8,7 +8,7 @@
 #include <string.h>
 
 #include "ftp_err.h"
-#include "ftp_command.h"
+#include "ftp_ctrl.h"
 #include "../session/ftp_session.h"
 
 stFtpContext g_ftpcontext;
@@ -20,7 +20,7 @@ static stFtpCommand g_ctrl_commands[] =
 	{"password", "PASS", FTP_SERVER_CONNECTED, FTP_IDENTIFY_INVALID, NULL},
 };
 
-int ftp_command_identify(stFtpContext *fc, char *user)
+int ftp_ctrl_identify(stFtpContext *fc, char *user)
 {
 	char command[128] = {0};
 	char reply[1024] = {0};
@@ -61,7 +61,7 @@ int ftp_command_identify(stFtpContext *fc, char *user)
 	return FTP_OK;
 }
 
-int ftp_command_ctrlsession(stFtpContext *fc)
+int ftp_ctrl_session(stFtpContext *fc)
 {
 	char command[128] = {0};
 	char reply[1024] = {0};
@@ -86,7 +86,7 @@ int ftp_command_ctrlsession(stFtpContext *fc)
 		if (0 == length)
 			strncpy(user, "anonymous", strlen("anonymous"));
 		
-		ftp_command_identify(fc, user);
+		ftp_ctrl_identify(fc, user);
 
 		return FTP_OK;
 	}
@@ -94,7 +94,7 @@ int ftp_command_ctrlsession(stFtpContext *fc)
 	return FTP_ERR;
 }
 
-int ftp_command_proc(char *domain, int port)
+int ftp_ctrl_proc(char *domain, int port)
 {
 	//char *ftpDomain = domain;
 	char command[128] = {0};
@@ -114,7 +114,7 @@ int ftp_command_proc(char *domain, int port)
 	{
 		if (fc->isconnected != FTP_SERVER_CONNECTED)
 		{
-			ftp_command_ctrlsession(fc);
+			ftp_ctrl_session(fc);
 		}
 
 		fprintf(stdout, FTP_COMMAND_PROMPT);
@@ -131,7 +131,7 @@ int ftp_command_proc(char *domain, int port)
 	return FTP_OK;
 }
 
-int ftp_command_init()
+int ftp_ctrl_init()
 {
 	stFtpContext *fc = &g_ftpcontext;
 	memset(fc, 0, sizeof(stFtpContext));
