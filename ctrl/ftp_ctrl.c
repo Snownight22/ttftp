@@ -15,13 +15,15 @@ stFtpContext g_ftpcontext;
 
 static stFtpCommand g_ctrl_commands[] = 
 {
-	{"open", NULL, FTP_SERVER_NOTCONNECTED, FTP_IDENTIFY_INVALID, NULL},
-	{"user", "USER", FTP_SERVER_CONNECTED, FTP_IDENTIFY_INVALID, NULL},
+	{"open", NULL, FTP_SERVER_NOTCONNECTED, FTP_IDENTIFY_INVALID, ftp_ctrl_session},
+	{"user", "USER", FTP_SERVER_CONNECTED, FTP_IDENTIFY_INVALID, ftp_ctrl_identify},
 	{"password", "PASS", FTP_SERVER_CONNECTED, FTP_IDENTIFY_INVALID, NULL},
 };
 
-int ftp_ctrl_identify(stFtpContext *fc, char *user)
+int ftp_ctrl_identify(void *arg1, void *arg2)
 {
+	stFtpContext *fc = (stFtpContext *)arg1;
+	char *user = (char *)arg2;
 	char command[128] = {0};
 	char reply[1024] = {0};
 	char pwd[32] = {0};
@@ -61,8 +63,9 @@ int ftp_ctrl_identify(stFtpContext *fc, char *user)
 	return FTP_OK;
 }
 
-int ftp_ctrl_session(stFtpContext *fc)
+int ftp_ctrl_session(void *arg1, void *arg2)
 {
+	stFtpContext *fc = (stFtpContext *)arg1;
 	char command[128] = {0};
 	char reply[1024] = {0};
 	char user[32] = {0};
@@ -96,27 +99,26 @@ int ftp_ctrl_session(stFtpContext *fc)
 
 int ftp_ctrl_proc(char *domain, int port)
 {
+	stFtpContext *fc = &g_ftpcontext;
+	stFtpCommand *ctrl = g_ctrl_commands;
 	//char *ftpDomain = domain;
 	char command[128] = {0};
 	char reply[1024] = {0};
 	char user[32] = {0};
 	int length;
-	stFtpContext *fc = &g_ftpcontext;
 	int ret;
+	int command_len = sizeof(g_ctrl_commands)/sizeof(stFtpCommand);
+	int i;
 
 	if (NULL != domain)
 	{
 		strncpy(fc->ftpDomain, domain, FTP_DOMAIN_LENGTH_MAX-1);
 		fc->ftpPort = port;
+		ftp_ctrl_session(fc, NULL);
 	}
 
 	while(1)
 	{
-		if (fc->isconnected != FTP_SERVER_CONNECTED)
-		{
-			ftp_ctrl_session(fc);
-		}
-
 		fprintf(stdout, FTP_COMMAND_PROMPT);
 		fgets(command, 127, stdin);
 		length = strlen(command);
@@ -125,6 +127,14 @@ int ftp_ctrl_proc(char *domain, int port)
 		{
 			fprintf(stdout, "byebye\n");
 			break;
+		}
+		
+		for (i = 0; i < command_len; i++)
+		{
+			if (!strcmp(command, ctrl[i].command))
+			{
+				ctrl[i].func(fc, command);
+			}
 		}
 	}
 

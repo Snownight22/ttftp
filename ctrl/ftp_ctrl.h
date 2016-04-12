@@ -28,7 +28,7 @@ typedef struct ftp_context
 
 #define FTP_COMMAND_PROMPT    "Ftp>>"
 
-typedef int (*action_func)(void*);
+typedef int (*action_func)(void *arg1, void *arg2);
 
 typedef struct ftp_command
 {
@@ -38,5 +38,8 @@ typedef struct ftp_command
 	int identify_status;
 	action_func func;
 }stFtpCommand;
+
+int ftp_ctrl_identify(void *arg1, void *arg2);
+int ftp_ctrl_session(void *arg1, void *arg2);
 
 #endif
