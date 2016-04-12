@@ -7,6 +7,8 @@
 #ifndef _FTP_COMMAND_H_
 #define _FTP_COMMAND_H_
 
+//#define FTP_PORT_DEFAULT          (21)
+
 #define FTP_DOMAIN_LENGTH_MAX    (128)
 
 #define FTP_SERVER_NOTCONNECTED    (0)
@@ -26,11 +28,12 @@ typedef struct ftp_context
 
 #define FTP_COMMAND_PROMPT    "Ftp>>"
 
-typedef int (*action_func)();
+typedef int (*action_func)(void*);
 
 typedef struct ftp_command
 {
-	char command[32];
+	char *command;
+	char *ftpcommand;
 	int connect_status;
 	int identify_status;
 	action_func func;

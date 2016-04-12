@@ -9,4 +9,8 @@
 
 #define FTP_PORT_DEFAULT    (21)
 
+int ftp_session_create(char *ftpDomain, int ftpPort);
+int ftp_session_getreply(int fd, char *reply, int length);
+int ftp_session_command(int fd, char *command);
+
 #endif

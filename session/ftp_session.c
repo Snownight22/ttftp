@@ -5,6 +5,7 @@
  *
  */
 #include <stdio.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
@@ -44,5 +45,16 @@ int ftp_session_create(char *ftpDomain, int ftpPort)
 		return FTP_CONNECT_FAIL;
 	}
 
-	return FTP_OK; 
+	fprintf(stdout, "Connected to %s (%s)\n", ftpDomain, inet_ntoa(ftpaddr.sin_addr));
+	return ftpfd; 
+}
+
+int ftp_session_getreply(int fd, char *reply, int length)
+{
+	return recv(fd, reply, length, 0);
+}
+
+int ftp_session_command(int fd, char *command)
+{
+	return send(fd, command, strlen(command), 0);
 }
