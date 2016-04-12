@@ -15,9 +15,10 @@ stFtpContext g_ftpcontext;
 
 static stFtpCommand g_ctrl_commands[] = 
 {
-	{"open", NULL, FTP_SERVER_NOTCONNECTED, FTP_IDENTIFY_INVALID, ftp_ctrl_session},
-	{"user", "USER", FTP_SERVER_CONNECTED, FTP_IDENTIFY_INVALID, ftp_ctrl_identify},
-	{"password", "PASS", FTP_SERVER_CONNECTED, FTP_IDENTIFY_INVALID, NULL},
+	{"open", NULL, FTP_SERVER_NOTCONNECTED, FTP_IDENTIFY_INVALID, FTP_HAS_ARGS, ftp_ctrl_session},
+	{"user", "USER", FTP_SERVER_CONNECTED, FTP_IDENTIFY_INVALID, FTP_HAS_ARGS, ftp_ctrl_identify},
+	{"password", "PASS", FTP_SERVER_CONNECTED, FTP_IDENTIFY_INVALID, FTP_HAS_ARGS, NULL},
+	{"system", "SYST", FTP_SERVER_CONNECTED, FTP_IDENTIFY_VALID, FTP_HAS_NO_ARGS, ftp_ctrl_getmsg},
 };
 
 static int command_analysis(char *string, char *command, char *args)
@@ -35,6 +36,29 @@ static int command_analysis(char *string, char *command, char *args)
 			strcpy(command, string);
 			strcpy(args, &string[i+1]);
 		}
+	}
+
+	return FTP_OK;
+}
+
+int ftp_ctrl_getmsg(void *arg1, void *arg2)
+{
+	stFtpContext *fc = (stFtpContext *)arg1;
+	char *command = (char *)arg2;
+	char reply[1024] = {0};
+	char send_command[128] = {0};
+	int ret;
+
+	snprintf(send_command, 127, "%s\r\n", command);
+	if (0 >= (ret = ftp_session_command(fc->serverfd, send_command)))
+	{
+		fprintf(stderr, "send command:%s error\n", command);
+		return FTP_OK;
+	}
+	if (0 <= (ret = ftp_session_getreply(fc->serverfd, reply, 1024)))
+	{
+		reply[ret] = '\0';
+		fprintf(stdout, reply);
 	}
 
 	return FTP_OK;
@@ -123,7 +147,7 @@ int ftp_ctrl_session(void *arg1, void *arg2)
 int ftp_ctrl_proc(char *domain, int port)
 {
 	stFtpContext *fc = &g_ftpcontext;
-	stFtpCommand *ctrl = g_ctrl_commands;
+	stFtpCommand *ctrl;
 	//char *ftpDomain = domain;
 	char command[128] = {0};
 	char input[128] = {0};
@@ -159,10 +183,21 @@ int ftp_ctrl_proc(char *domain, int port)
 		
 		for (i = 0; i < command_len; i++)
 		{
-			if (!strcmp(command, ctrl[i].command))
+			ctrl = &g_ctrl_commands[i];
+			if (!strcmp(command, ctrl->command))
 			{
-				if (ctrl[i].func)
-					ctrl[i].func(fc, args);
+				if ((ctrl->connect_status == FTP_SERVER_CONNECTED) && (fc->isconnected == FTP_SERVER_NOTCONNECTED))
+				{
+					fprintf(stdout, "Not connected.\n");
+					break;
+				}
+				if (ctrl->func)
+				{
+					if (ctrl->has_args)
+						ctrl->func(fc, args);
+					else
+						ctrl->func(fc, ctrl->ftpcommand);
+				}
 			}
 		}
 	}
