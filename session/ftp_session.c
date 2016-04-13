@@ -58,3 +58,9 @@ int ftp_session_command(int fd, char *command)
 {
 	return send(fd, command, strlen(command), 0);
 }
+
+int ftp_session_destory(int fd)
+{
+	close(fd);
+	return FTP_OK;
+}

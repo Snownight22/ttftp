@@ -178,6 +178,7 @@ int ftp_ctrl_proc(char *domain, int port)
 		if (!strcmp(command, "quit"))
 		{
 			fprintf(stdout, "byebye\n");
+			ftp_session_destory(fc->serverfd);
 			break;
 		}
 		
