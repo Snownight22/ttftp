@@ -13,5 +13,6 @@
 #define FTP_SOCKET_ERR     (-2)
 #define FTP_CONNECT_FAIL   (-3)
 #define FTP_GETHOST_FAIL   (-4)
+#define FTP_THREAD_FAIL    (-5)
 
 #endif

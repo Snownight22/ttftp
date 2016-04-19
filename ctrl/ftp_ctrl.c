@@ -41,6 +41,25 @@ static int command_analysis(char *string, char *command, char *args)
 	return FTP_OK;
 }
 
+int ftp_ctrl_list(void *arg1, void *arg2)
+{
+	stFtpContext *fc = (stFtpContext *)arg1;
+	int ret;
+
+	if (fc->ispassive == FTP_NOT_PASSIVE)
+	{
+		ret = ftp_session_data(&fc->ldataport);
+		if (0 < ret)
+		{
+		}
+		else
+		{
+		}
+	}
+
+	return FTP_OK;
+}
+
 int ftp_ctrl_getmsg(void *arg1, void *arg2)
 {
 	stFtpContext *fc = (stFtpContext *)arg1;
@@ -215,6 +234,7 @@ int ftp_ctrl_init()
 	fc->isconnected = FTP_SERVER_NOTCONNECTED;
 	fc->isidentified = FTP_IDENTIFY_INVALID;
 	fc->serverfd = -1;
+	fc->ispassive = FTP_NOT_PASSIVE;
 
 	return FTP_OK;
 }

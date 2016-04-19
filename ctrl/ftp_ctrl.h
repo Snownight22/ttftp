@@ -17,6 +17,9 @@
 #define FTP_IDENTIFY_INVALID       (0)
 #define FTP_IDENTIFY_VALID         (1)
 
+#define FTP_NOT_PASSIVE            (0)
+#define FTP_IS_PASSIVE             (1)
+
 #define FTP_HAS_NO_ARGS            (0)
 #define FTP_HAS_ARGS               (1)
 
@@ -26,7 +29,11 @@ typedef struct ftp_context
 	int ftpPort;
 	int isconnected;
 	int isidentified;
+	int ispassive;
 	int serverfd;
+	int ldataport;
+	int fdataport;
+	char *reply;
 }stFtpContext;
 
 #define FTP_COMMAND_PROMPT    "Ftp>>"

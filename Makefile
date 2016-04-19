@@ -1,7 +1,7 @@
 CC = gcc
 DEBUG = -g
 INC = -I./include/ 
-LIBS = 
+LIBS = -lpthread 
 CFLAGS =
 
 SRC_DIR = .        \

@@ -49,6 +49,62 @@ int ftp_session_create(char *ftpDomain, int ftpPort)
 	return ftpfd; 
 }
 
+void * ftp_session_transport(void *arg)
+{
+	int lfd = *((int *)arg);
+	struct sockaddr_in faddr;
+	int sfd;
+	char buffer[1024] = {0};
+	int ret;
+	int addrlen;
+
+	sfd = accept(lfd, (struct sockaddr *)(&faddr), &addrlen);
+	while(1)
+	{
+		ret = recv(sfd, buffer, 1024, 0);
+		if (0 > ret)
+		{
+			break;
+		}
+		fprintf(stdout, "List:\n%s\n", buffer);
+	}
+
+	return FTP_OK;
+}
+
+#define BACKLOG  (1)
+int ftp_session_data(int *listenport)
+{
+	int lfd;
+	int ret;
+	struct sockaddr_in laddr;
+	pthread_t data_thread;
+	int addrlen;
+
+	if (0 > (lfd = socket(AF_INET, SOCK_STREAM, 0)))
+	{
+		fprintf(stderr, "session data create socket error\n");
+		return FTP_SOCKET_ERR;
+	}
+
+	laddr.sin_family = AF_INET;
+	laddr.sin_addr.s_addr = INADDR_ANY;
+	laddr.sin_port = htons(0);
+	bind(lfd,  (struct sockaddr *)(&laddr), sizeof(struct sockaddr));
+	listen(lfd, BACKLOG);
+
+	ret = pthread_create(&data_thread, NULL, ftp_session_transport, &lfd);
+	if (0 > ret)
+	{
+		return FTP_THREAD_FAIL;
+	}
+
+	getsockname(lfd, (struct sockaddr *)(&laddr), &addrlen);
+	*listenport = ntohs(laddr.sin_port);
+
+	return lfd;
+}
+
 int ftp_session_getreply(int fd, char *reply, int length)
 {
 	return recv(fd, reply, length, 0);
