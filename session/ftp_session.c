@@ -14,11 +14,16 @@
 #include "ftp_err.h"
 #include "ftp_session.h"
 
+long g_local_addr = 0;
+
 int ftp_session_create(char *ftpDomain, int ftpPort)
 {
 	int ftpfd;
 	struct hostent *ftphost;
 	struct sockaddr_in ftpaddr;
+	struct sockaddr_in laddr;
+	int addr_len;
+	int ret;
 
 	ftphost = gethostbyname(ftpDomain);
 	if (NULL == ftphost)
@@ -45,6 +50,8 @@ int ftp_session_create(char *ftpDomain, int ftpPort)
 		return FTP_CONNECT_FAIL;
 	}
 
+	ret = getsockname(ftpfd, (struct sockaddr *)(&laddr), &addr_len);
+	g_local_addr = ntohl(laddr.sin_addr.s_addr);
 	fprintf(stdout, "Connected to %s (%s)\n", ftpDomain, inet_ntoa(ftpaddr.sin_addr));
 	return ftpfd; 
 }
@@ -73,11 +80,12 @@ void * ftp_session_transport(void *arg)
 }
 
 #define BACKLOG  (1)
-int ftp_session_data(int *listenport)
+int ftp_session_data(long *listenip, int *listenport)
 {
 	int lfd;
 	int ret;
 	struct sockaddr_in laddr;
+	struct sockaddr_in dataaddr;
 	pthread_t data_thread;
 	int addrlen;
 
@@ -88,9 +96,10 @@ int ftp_session_data(int *listenport)
 	}
 
 	laddr.sin_family = AF_INET;
-	laddr.sin_addr.s_addr = INADDR_ANY;
+	laddr.sin_addr.s_addr = htonl(g_local_addr); //INADDR_ANY;
 	laddr.sin_port = htons(0);
 	bind(lfd,  (struct sockaddr *)(&laddr), sizeof(struct sockaddr));
+	ret = getsockname(lfd, (struct sockaddr *)(&dataaddr), &addrlen);
 	listen(lfd, BACKLOG);
 
 	ret = pthread_create(&data_thread, NULL, ftp_session_transport, &lfd);
@@ -99,8 +108,8 @@ int ftp_session_data(int *listenport)
 		return FTP_THREAD_FAIL;
 	}
 
-	getsockname(lfd, (struct sockaddr *)(&laddr), &addrlen);
-	*listenport = ntohs(laddr.sin_port);
+	*listenport = ntohs(dataaddr.sin_port);
+	*listenip = g_local_addr;
 
 	return lfd;
 }

@@ -19,6 +19,7 @@ static stFtpCommand g_ctrl_commands[] =
 	{"user", "USER", FTP_SERVER_CONNECTED, FTP_IDENTIFY_INVALID, FTP_HAS_ARGS, ftp_ctrl_identify},
 	{"password", "PASS", FTP_SERVER_CONNECTED, FTP_IDENTIFY_INVALID, FTP_HAS_ARGS, NULL},
 	{"system", "SYST", FTP_SERVER_CONNECTED, FTP_IDENTIFY_VALID, FTP_HAS_NO_ARGS, ftp_ctrl_getmsg},
+	{"list", "LIST", FTP_SERVER_CONNECTED, FTP_IDENTIFY_VALID, FTP_HAS_NO_ARGS, ftp_ctrl_list},
 };
 
 static int command_analysis(char *string, char *command, char *args)
@@ -35,25 +36,6 @@ static int command_analysis(char *string, char *command, char *args)
 			string[i] = '\0';
 			strcpy(command, string);
 			strcpy(args, &string[i+1]);
-		}
-	}
-
-	return FTP_OK;
-}
-
-int ftp_ctrl_list(void *arg1, void *arg2)
-{
-	stFtpContext *fc = (stFtpContext *)arg1;
-	int ret;
-
-	if (fc->ispassive == FTP_NOT_PASSIVE)
-	{
-		ret = ftp_session_data(&fc->ldataport);
-		if (0 < ret)
-		{
-		}
-		else
-		{
 		}
 	}
 
@@ -78,6 +60,29 @@ int ftp_ctrl_getmsg(void *arg1, void *arg2)
 	{
 		reply[ret] = '\0';
 		fprintf(stdout, reply);
+	}
+
+	return FTP_OK;
+}
+
+int ftp_ctrl_list(void *arg1, void *arg2)
+{
+	stFtpContext *fc = (stFtpContext *)arg1;
+	int ret;
+	char command[128] = {0};
+
+	if (fc->ispassive == FTP_NOT_PASSIVE)
+	{
+		ret = ftp_session_data(&fc->ldataaddr, &fc->ldataport);
+		if (0 < ret)
+		{
+			snprintf(command, 127, "PORT %u,%u,%u,%u,%u,%u", (fc->ldataaddr>>24)&0x000000ff, (fc->ldataaddr>>16) & 0x000000ff, (fc->ldataaddr>>8)&0x000000ff, (fc->ldataaddr&0x000000ff), (fc->ldataport >>8)&0x00ff, (fc->ldataport & 0x00ff));
+			ftp_ctrl_getmsg(fc, command);
+		}
+		else
+		{
+			fprintf(stderr, "listen data port error\n");
+		}
 	}
 
 	return FTP_OK;
