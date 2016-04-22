@@ -88,16 +88,16 @@ void * ftp_session_transport(void *arg)
 	sfd = accept(lfd, (struct sockaddr *)(&faddr), &addrlen);
 	while(1)
 	{
-		ret = recv(sfd, buffer, 1024, 0);
+		ret = recv(sfd, buffer, 1023, 0);
 		if (0 >= ret)
 		{
 			break;
 		}
 		buffer[ret] = '\0';
-		fprintf(stdout, "List:\n%s\n", buffer);
+		printf("List:\n%s\n", buffer);
 	}
 
-	sem_post(&g_sem);
+	//sem_post(&g_sem);
 
 	return FTP_OK;
 }

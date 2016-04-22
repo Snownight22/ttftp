@@ -66,8 +66,7 @@ int ftp_ctrl_getmsg(void *arg1, void *arg2)
 	return FTP_OK;
 }
 
-extern sem_t g_sem;
-
+//extern sem_t g_sem;
 int ftp_ctrl_list(void *arg1, void *arg2)
 {
 	stFtpContext *fc = (stFtpContext *)arg1;
@@ -80,12 +79,18 @@ int ftp_ctrl_list(void *arg1, void *arg2)
 		ret = ftp_session_data(&fc->ldataaddr, &fc->ldataport);
 		if (0 < ret)
 		{
-			sem_init(&g_sem, 0, 0);
+			//sem_init(&g_sem, 0, 0);
 			snprintf(command, 127, "PORT %u,%u,%u,%u,%u,%u", (fc->ldataaddr>>24)&0x000000ff, (fc->ldataaddr>>16) & 0x000000ff, (fc->ldataaddr>>8)&0x000000ff, (fc->ldataaddr&0x000000ff), (fc->ldataport >>8)&0x00ff, (fc->ldataport & 0x00ff));
 			ftp_ctrl_getmsg(fc, command);
 			ftp_ctrl_getmsg(fc, "LIST\r\n");
-			sem_wait(&g_sem);
-			sem_destroy(&g_sem);
+			ret = ftp_session_getreply(fc->serverfd, command, 128);
+			if (0 < ret)
+			{
+				command[ret] = '\0';
+			    fprintf(stdout, command);
+			}
+			//sem_wait(&g_sem);
+			//sem_destroy(&g_sem);
 		}
 		else
 		{
