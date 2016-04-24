@@ -31,6 +31,7 @@ typedef struct ftp_context
 	int isidentified;
 	int ispassive;
 	int serverfd;
+	int clientfd;
 	int ldataport;
 	long ldataaddr;
 	int fdataport;

@@ -20,7 +20,7 @@ static stFtpCommand g_ctrl_commands[] =
 	{"user", "USER", FTP_SERVER_CONNECTED, FTP_IDENTIFY_INVALID, FTP_HAS_ARGS, ftp_ctrl_identify},
 	{"password", "PASS", FTP_SERVER_CONNECTED, FTP_IDENTIFY_INVALID, FTP_HAS_ARGS, NULL},
 	{"system", "SYST", FTP_SERVER_CONNECTED, FTP_IDENTIFY_VALID, FTP_HAS_NO_ARGS, ftp_ctrl_getmsg},
-	{"list", "LIST", FTP_SERVER_CONNECTED, FTP_IDENTIFY_VALID, FTP_HAS_NO_ARGS, ftp_ctrl_list},
+	{"ls", "LIST", FTP_SERVER_CONNECTED, FTP_IDENTIFY_VALID, FTP_HAS_NO_ARGS, ftp_ctrl_list},
 };
 
 static int command_analysis(char *string, char *command, char *args)
@@ -76,13 +76,14 @@ int ftp_ctrl_list(void *arg1, void *arg2)
 	if (fc->ispassive == FTP_NOT_PASSIVE)
 	{
 		ret = ftp_session_config(fc->serverfd, &fc->ldataaddr, &fc->ldataport);
-		ret = ftp_session_data(&fc->ldataaddr, &fc->ldataport);
+		ret = ftp_session_data(&fc->clientfd, &fc->ldataport);
 		if (0 < ret)
 		{
 			//sem_init(&g_sem, 0, 0);
 			snprintf(command, 127, "PORT %u,%u,%u,%u,%u,%u", (fc->ldataaddr>>24)&0x000000ff, (fc->ldataaddr>>16) & 0x000000ff, (fc->ldataaddr>>8)&0x000000ff, (fc->ldataaddr&0x000000ff), (fc->ldataport >>8)&0x00ff, (fc->ldataport & 0x00ff));
 			ftp_ctrl_getmsg(fc, command);
-			ftp_ctrl_getmsg(fc, "LIST\r\n");
+			ftp_ctrl_getmsg(fc, "LIST");
+			sleep(1);
 			ret = ftp_session_getreply(fc->serverfd, command, 128);
 			if (0 < ret)
 			{

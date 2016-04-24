@@ -11,6 +11,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <semaphore.h>
+#include <errno.h>
 
 #include "ftp_err.h"
 #include "ftp_session.h"
@@ -84,6 +85,7 @@ void * ftp_session_transport(void *arg)
 	char buffer[1024] = {0};
 	int ret;
 	int addrlen;
+	int i;
 
 	sfd = accept(lfd, (struct sockaddr *)(&faddr), &addrlen);
 	while(1)
@@ -91,10 +93,16 @@ void * ftp_session_transport(void *arg)
 		ret = recv(sfd, buffer, 1023, 0);
 		if (0 >= ret)
 		{
+			//fprintf(stderr, "recv ret:%d, errno:%d\n", ret, errno);
 			break;
 		}
+		//fprintf(stdout, "recv %d char\n", ret);
+		//for (i = 0;i < ret;i++)
+		//{
+			//fprintf(stdout, "%c", buffer[i]);
+		//}
 		buffer[ret] = '\0';
-		printf("List:\n%s\n", buffer);
+		fprintf(stdout, "%s\n", buffer);
 	}
 
 	//sem_post(&g_sem);
@@ -103,7 +111,7 @@ void * ftp_session_transport(void *arg)
 }
 
 #define BACKLOG  (1)
-int ftp_session_data(long *listenip, int *listenport)
+int ftp_session_data(int *clientfd, int *listenport)
 {
 	int lfd;
 	int ret;
@@ -117,14 +125,16 @@ int ftp_session_data(long *listenip, int *listenport)
 		fprintf(stderr, "session data create socket error\n");
 		return FTP_SOCKET_ERR;
 	}
+	//fprintf(stdout, "create data fd:%d\n", lfd);
 
 	laddr.sin_family = AF_INET;
 	laddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	laddr.sin_port = htons(0);
 	bind(lfd,  (struct sockaddr *)(&laddr), sizeof(struct sockaddr));
 	listen(lfd, BACKLOG);
+	*clientfd = lfd;
 
-	ret = pthread_create(&data_thread, NULL, ftp_session_transport, &lfd);
+	ret = pthread_create(&data_thread, NULL, ftp_session_transport, clientfd);
 	if (0 > ret)
 	{
 		return FTP_THREAD_FAIL;
