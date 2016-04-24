@@ -33,8 +33,9 @@ typedef struct ftp_context
 	int serverfd;
 	int clientfd;
 	int ldataport;
-	long ldataaddr;
 	int fdataport;
+	long ldataaddr;
+	long fdataaddr;
 	char *reply;
 }stFtpContext;
 
@@ -53,6 +54,7 @@ typedef struct ftp_command
 }stFtpCommand;
 
 int ftp_ctrl_identify(void *arg1, void *arg2);
+int ftp_ctrl_setpassive(void *arg1, void *arg2);
 int ftp_ctrl_session(void *arg1, void *arg2);
 int ftp_ctrl_getmsg(void *arg1, void *arg2);
 int ftp_ctrl_list(void *arg1, void *arg2);

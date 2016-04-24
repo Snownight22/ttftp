@@ -21,6 +21,7 @@ static stFtpCommand g_ctrl_commands[] =
 	{"password", "PASS", FTP_SERVER_CONNECTED, FTP_IDENTIFY_INVALID, FTP_HAS_ARGS, NULL},
 	{"system", "SYST", FTP_SERVER_CONNECTED, FTP_IDENTIFY_VALID, FTP_HAS_NO_ARGS, ftp_ctrl_getmsg},
 	{"ls", "LIST", FTP_SERVER_CONNECTED, FTP_IDENTIFY_VALID, FTP_HAS_NO_ARGS, ftp_ctrl_list},
+	{"passive", "PASV", FTP_SERVER_CONNECTED, FTP_IDENTIFY_VALID, FTP_HAS_NO_ARGS, ftp_ctrl_setpassive},
 };
 
 static int command_analysis(char *string, char *command, char *args)
@@ -43,6 +44,45 @@ static int command_analysis(char *string, char *command, char *args)
 	return FTP_OK;
 }
 
+static int reply_analysis(char *reply, int *errcode)
+{
+	int i = 0;
+	int length = strlen(reply);
+	char code[4] = {0};
+
+	strncpy(code, reply, 3);
+	*errcode = atoi(code);
+
+	return FTP_OK;
+}
+
+int ftp_ctrl_pasvmsg(char *reply, int *errcode, long *sip, int *sport)
+{
+	char *cp;
+	unsigned int v[6];
+
+	cp = strchr(reply, '(');
+	if (NULL == cp)
+		return FTP_ERR;
+	cp++;
+
+	sscanf(cp, "%u,%u,%u,%u,%u,%u", &v[2], &v[3], &v[4], &v[5], &v[0], &v[1]);
+	*sip = (v[2] << 24) + (v[3] << 16) + (v[4] << 8) + v[5];
+	*sport = (v[0] << 8) + v[1];
+
+	return FTP_OK;
+}
+
+int ftp_ctrl_setpassive(void *arg1, void *arg2)
+{
+	stFtpContext *fc = (stFtpContext *)arg1;
+
+	fc->ispassive = !fc->ispassive;
+	fprintf(stdout, "passive mode %s\n", fc->ispassive ? "on":"off");
+
+	return FTP_OK;
+}
+
 int ftp_ctrl_getmsg(void *arg1, void *arg2)
 {
 	stFtpContext *fc = (stFtpContext *)arg1;
@@ -50,6 +90,7 @@ int ftp_ctrl_getmsg(void *arg1, void *arg2)
 	char reply[1024] = {0};
 	char send_command[128] = {0};
 	int ret;
+	int errcode;
 
 	snprintf(send_command, 127, "%s\r\n", command);
 	if (0 >= (ret = ftp_session_command(fc->serverfd, send_command)))
@@ -63,6 +104,10 @@ int ftp_ctrl_getmsg(void *arg1, void *arg2)
 		fprintf(stdout, reply);
 	}
 
+	reply_analysis(reply, &errcode);
+	if (errcode == 227)
+		ftp_ctrl_pasvmsg(reply, &errcode, &fc->fdataaddr, &fc->fdataport);
+
 	return FTP_OK;
 }
 
@@ -72,6 +117,9 @@ int ftp_ctrl_list(void *arg1, void *arg2)
 	stFtpContext *fc = (stFtpContext *)arg1;
 	int ret;
 	char command[128] = {0};
+	int errcode;
+	char fip[16] = {0};
+	char *p;
 
 	if (fc->ispassive == FTP_NOT_PASSIVE)
 	{
@@ -97,6 +145,14 @@ int ftp_ctrl_list(void *arg1, void *arg2)
 		{
 			fprintf(stderr, "listen data port error\n");
 		}
+	}
+	else
+	{
+		fprintf(stdout, "passive mode\n");
+		ftp_ctrl_getmsg(fc, "PASV");
+		*p = fc->fdataaddr;
+		snprintf(fip, 15, "%u.%u.%u.%u", (p[0]>>24) & 0xff, (p[1]>>16) & 0xff, (p[2]>>8) & 0xff, p[3]& 0xff);
+		fprintf(stdout, "faddr:%s, port:%d\n", fip, fc->fdataport);
 	}
 
 	return FTP_OK;
@@ -210,6 +266,8 @@ int ftp_ctrl_proc(char *domain, int port)
 		fgets(input, 127, stdin);
 		length = strlen(input);
 		input[length-1] = '\0';
+		if (length <= 1)
+			continue;
 		memset(command, 0, sizeof(command));
 		memset(args, 0, sizeof(args));
 		command_analysis(input, command, args);
@@ -237,6 +295,7 @@ int ftp_ctrl_proc(char *domain, int port)
 					else
 						ctrl->func(fc, ctrl->ftpcommand);
 				}
+				break;
 			}
 		}
 	}
