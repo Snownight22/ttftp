@@ -120,6 +120,8 @@ int ftp_ctrl_list(void *arg1, void *arg2)
 	int errcode;
 	char fip[16] = {0};
 	char *p;
+	int lfd;
+	char reply[1024] = {0};
 
 	if (fc->ispassive == FTP_NOT_PASSIVE)
 	{
@@ -150,9 +152,29 @@ int ftp_ctrl_list(void *arg1, void *arg2)
 	{
 		fprintf(stdout, "passive mode\n");
 		ftp_ctrl_getmsg(fc, "PASV");
-		*p = fc->fdataaddr;
-		snprintf(fip, 15, "%u.%u.%u.%u", (p[0]>>24) & 0xff, (p[1]>>16) & 0xff, (p[2]>>8) & 0xff, p[3]& 0xff);
+		snprintf(fip, 15, "%u.%u.%u.%u", (fc->fdataaddr>>24)&0xff, (fc->fdataaddr>>16) & 0xff, (fc->fdataaddr>>8) & 0xff, fc->fdataaddr& 0xff);
 		fprintf(stdout, "faddr:%s, port:%d\n", fip, fc->fdataport);
+		ftp_ctrl_getmsg(fc, "LIST");
+		lfd = ftp_session_create(fip, fc->fdataport);
+		if (0 > lfd)
+		{
+			fprintf(stderr, "open socket error\n");
+			return FTP_ERR;
+		}
+		while (1)
+		{
+		    ret = ftp_session_getreply(lfd, reply, 1023);
+			if (0 >= ret)
+				break;
+			reply[ret] = '\0';
+			fprintf(stdout, "%s", reply);
+		}
+		ret = ftp_session_getreply(fc->serverfd, command, 128);
+		if (0 < ret)
+		{
+			command[ret] = '\0';
+			fprintf(stdout, command);
+		}
 	}
 
 	return FTP_OK;
