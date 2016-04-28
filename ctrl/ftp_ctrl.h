@@ -58,5 +58,6 @@ int ftp_ctrl_setpassive(void *arg1, void *arg2);
 int ftp_ctrl_session(void *arg1, void *arg2);
 int ftp_ctrl_getmsg(void *arg1, void *arg2);
 int ftp_ctrl_list(void *arg1, void *arg2);
+int ftp_ctrl_getfile(void *arg1, void *arg2);
 
 #endif

@@ -22,6 +22,7 @@ static stFtpCommand g_ctrl_commands[] =
 	{"system", "SYST", FTP_SERVER_CONNECTED, FTP_IDENTIFY_VALID, FTP_HAS_NO_ARGS, ftp_ctrl_getmsg},
 	{"ls", "LIST", FTP_SERVER_CONNECTED, FTP_IDENTIFY_VALID, FTP_HAS_NO_ARGS, ftp_ctrl_list},
 	{"passive", "PASV", FTP_SERVER_CONNECTED, FTP_IDENTIFY_VALID, FTP_HAS_NO_ARGS, ftp_ctrl_setpassive},
+	{"get", "RETR", FTP_SERVER_CONNECTED, FTP_IDENTIFY_VALID, FTP_HAS_ARGS, ftp_ctrl_getfile},
 };
 
 static int command_analysis(char *string, char *command, char *args)
@@ -178,6 +179,54 @@ int ftp_ctrl_list(void *arg1, void *arg2)
 	}
 
 	return FTP_OK;
+}
+
+int ftp_ctrl_getfile(void *arg1, void *arg2)
+{
+	stFtpContext *fc = (stFtpContext *)arg1;
+	char fip[16] = {0};
+	char *filename = (char *)arg2;
+	char command[128] = {0};
+	int ret;
+	FILE *fp = NULL;
+	int lfd;
+	char reply[1024] = {0};
+	
+	if (fc->ispassive == FTP_NOT_PASSIVE)
+	{
+	}
+	else
+	{
+		ftp_ctrl_getmsg(fc, "PASV");
+		snprintf(fip, 15, "%u.%u.%u.%u", (fc->fdataaddr>>24)&0xff, (fc->fdataaddr>>16) & 0xff, (fc->fdataaddr>>8) & 0xff, fc->fdataaddr& 0xff);
+		fprintf(stdout, "faddr:%s, port:%d\n", fip, fc->fdataport);	
+		snprintf(command, 127, "RETR %s", filename);
+		ftp_ctrl_getmsg(fc, command);
+		lfd = ftp_session_create(fip, fc->fdataport);
+		if (0 > lfd)
+		{
+			fprintf(stderr, "open socket error\n");
+			return FTP_ERR;
+		}
+		fp = fopen(filename, "wb");
+		if (NULL != fp)
+		{
+		    while (1)
+		    {
+				ret = ftp_session_getreply(lfd, reply, 1024);
+				if (0 >= ret)
+					break;
+				fwrite(reply, ret, sizeof(char), fp);
+			}
+			fclose(fp);
+		}
+		ret = ftp_session_getreply(fc->serverfd, command, 128);
+		if (0 < ret)
+		{
+			command[ret] = '\0';
+			fprintf(stdout, command);
+		}
+	}
 }
 
 int ftp_ctrl_identify(void *arg1, void *arg2)
