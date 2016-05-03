@@ -5,6 +5,7 @@
  *
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -79,15 +80,21 @@ int ftp_session_config(int fd, long *listenip, int *listenport)
 
 void * ftp_session_transport(void *arg)
 {
-	int lfd = *((int *)arg);
 	struct sockaddr_in faddr;
 	int sfd;
 	char buffer[1024] = {0};
 	int ret;
 	int addrlen;
 	int i;
+	stFtpSc *sc = (stFtpSc *)arg;
+	int lfd = sc->lfd;
+	FILE *fp = NULL;
 
 	sfd = accept(lfd, (struct sockaddr *)(&faddr), &addrlen);
+	if (sc->mode == 1)
+	{
+		fp = fopen(sc->filename, "wb");
+	}
 	while(1)
 	{
 		ret = recv(sfd, buffer, 1023, 0);
@@ -101,17 +108,30 @@ void * ftp_session_transport(void *arg)
 		//{
 			//fprintf(stdout, "%c", buffer[i]);
 		//}
-		buffer[ret] = '\0';
-		fprintf(stdout, "%s\n", buffer);
+		if (sc->mode == 1)
+		{
+			if (fp)
+				fwrite(buffer, 1, ret*sizeof(char), fp);
+		}
+		else
+		{
+		    buffer[ret] = '\0';
+		    fprintf(stdout, "%s\n", buffer);
+		}
 	}
 
+	if (fp)
+	{
+		fclose(fp);
+		fp = NULL;
+	}
 	//sem_post(&g_sem);
 
 	return FTP_OK;
 }
 
 #define BACKLOG  (1)
-int ftp_session_data(int *clientfd, int *listenport)
+int ftp_session_data(int *clientfd, int *listenport, char *filename, int mode)
 {
 	int lfd;
 	int ret;
@@ -119,6 +139,7 @@ int ftp_session_data(int *clientfd, int *listenport)
 	struct sockaddr_in dataaddr;
 	pthread_t data_thread;
 	int addrlen = sizeof(struct sockaddr);
+	stFtpSc *sc = (stFtpSc *)malloc(sizeof(stFtpSc));
 
 	if (0 > (lfd = socket(AF_INET, SOCK_STREAM, 0)))
 	{
@@ -133,8 +154,12 @@ int ftp_session_data(int *clientfd, int *listenport)
 	bind(lfd,  (struct sockaddr *)(&laddr), sizeof(struct sockaddr));
 	listen(lfd, BACKLOG);
 	*clientfd = lfd;
+	sc->lfd = lfd;
+	sc->mode = mode;
+	if (sc->mode == 1)
+		strncpy(sc->filename, filename, 128);
 
-	ret = pthread_create(&data_thread, NULL, ftp_session_transport, clientfd);
+	ret = pthread_create(&data_thread, NULL, ftp_session_transport, sc);
 	if (0 > ret)
 	{
 		return FTP_THREAD_FAIL;
