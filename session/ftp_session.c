@@ -7,12 +7,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <semaphore.h>
 #include <errno.h>
+#include <pthread.h>
 
 #include "ftp_err.h"
 #include "ftp_session.h"
@@ -66,7 +68,7 @@ int ftp_session_config(int fd, long *listenip, int *listenport)
 	struct sockaddr_in dataaddr;
 	int addrlen;
 
-	ret = getsockname(fd, (struct sockaddr *)(&dataaddr), &addrlen);
+	ret = getsockname(fd, (struct sockaddr *)(&dataaddr), (socklen_t *)(&addrlen));
 	if (ret != 0)
 	{
 		fprintf(stderr, "get sock name error\n");
@@ -90,7 +92,7 @@ void * ftp_session_transport(void *arg)
 	int lfd = sc->lfd;
 	FILE *fp = NULL;
 
-	sfd = accept(lfd, (struct sockaddr *)(&faddr), &addrlen);
+	sfd = accept(lfd, (struct sockaddr *)(&faddr), (socklen_t *)(&addrlen));
 	if (sc->mode == 1)
 	{
 		fp = fopen(sc->filename, "wb");
@@ -165,7 +167,7 @@ int ftp_session_data(int *clientfd, int *listenport, char *filename, int mode)
 		return FTP_THREAD_FAIL;
 	}
 
-	ret = getsockname(lfd, (struct sockaddr *)(&dataaddr), &addrlen);
+	ret = getsockname(lfd, (struct sockaddr *)(&dataaddr), (socklen_t *)(&addrlen));
 	*listenport = ntohs(dataaddr.sin_port);
 	//*listenip = g_local_addr;
 

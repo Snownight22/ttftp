@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <semaphore.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "ftp_err.h"
 #include "ftp_ctrl.h"
@@ -102,7 +104,7 @@ int ftp_ctrl_getmsg(void *arg1, void *arg2)
 	if (0 <= (ret = ftp_session_getreply(fc->serverfd, reply, 1024)))
 	{
 		reply[ret] = '\0';
-		fprintf(stdout, reply);
+		fprintf(stdout, "%s", reply);
 	}
 
 	reply_analysis(reply, &errcode);
@@ -131,7 +133,7 @@ int ftp_ctrl_list(void *arg1, void *arg2)
 		if (0 < ret)
 		{
 			//sem_init(&g_sem, 0, 0);
-			snprintf(command, 127, "PORT %u,%u,%u,%u,%u,%u", (fc->ldataaddr>>24)&0x000000ff, (fc->ldataaddr>>16) & 0x000000ff, (fc->ldataaddr>>8)&0x000000ff, (fc->ldataaddr&0x000000ff), (fc->ldataport >>8)&0x00ff, (fc->ldataport & 0x00ff));
+			snprintf(command, 127, "PORT %u,%u,%u,%u,%u,%u", (unsigned int)(fc->ldataaddr>>24)&0x000000ff, (unsigned int)(fc->ldataaddr>>16) & 0x000000ff, (unsigned int)(fc->ldataaddr>>8)&0x000000ff, (unsigned int)(fc->ldataaddr&0x000000ff), (fc->ldataport >>8)&0x00ff, (fc->ldataport & 0x00ff));
 			ftp_ctrl_getmsg(fc, command);
 			ftp_ctrl_getmsg(fc, "LIST");
 			sleep(1);
@@ -139,7 +141,7 @@ int ftp_ctrl_list(void *arg1, void *arg2)
 			if (0 < ret)
 			{
 				command[ret] = '\0';
-			    fprintf(stdout, command);
+			    fprintf(stdout, "%s", command);
 			}
 			//sem_wait(&g_sem);
 			//sem_destroy(&g_sem);
@@ -153,7 +155,7 @@ int ftp_ctrl_list(void *arg1, void *arg2)
 	{
 		fprintf(stdout, "passive mode\n");
 		ftp_ctrl_getmsg(fc, "PASV");
-		snprintf(fip, 15, "%u.%u.%u.%u", (fc->fdataaddr>>24)&0xff, (fc->fdataaddr>>16) & 0xff, (fc->fdataaddr>>8) & 0xff, fc->fdataaddr& 0xff);
+		snprintf(fip, 15, "%u.%u.%u.%u", (unsigned int)(fc->fdataaddr>>24)&0xff, (unsigned int)(fc->fdataaddr>>16) & 0xff, (unsigned int)(fc->fdataaddr>>8) & 0xff, (unsigned int)fc->fdataaddr& 0xff);
 		fprintf(stdout, "faddr:%s, port:%d\n", fip, fc->fdataport);
 		ftp_ctrl_getmsg(fc, "LIST");
 		lfd = ftp_session_create(fip, fc->fdataport);
@@ -174,7 +176,7 @@ int ftp_ctrl_list(void *arg1, void *arg2)
 		if (0 < ret)
 		{
 			command[ret] = '\0';
-			fprintf(stdout, command);
+			fprintf(stdout, "%s", command);
 		}
 	}
 
@@ -198,7 +200,7 @@ int ftp_ctrl_getfile(void *arg1, void *arg2)
 		ret = ftp_session_data(&fc->clientfd, &fc->ldataport, filename, 1);
 		if (0 < ret)
 		{
-			snprintf(command, 127, "PORT %u,%u,%u,%u,%u,%u", (fc->ldataaddr>>24)&0x000000ff, (fc->ldataaddr>>16) & 0x000000ff, (fc->ldataaddr>>8)&0x000000ff, (fc->ldataaddr&0x000000ff), (fc->ldataport >>8)&0x00ff, (fc->ldataport & 0x00ff));
+			snprintf(command, 127, "PORT %u,%u,%u,%u,%u,%u", (unsigned int)(fc->ldataaddr>>24)&0x000000ff, (unsigned int)(fc->ldataaddr>>16) & 0x000000ff, (unsigned int)(fc->ldataaddr>>8)&0x000000ff, (unsigned int)(fc->ldataaddr&0x000000ff), (fc->ldataport >>8)&0x00ff, (fc->ldataport & 0x00ff));
 			ftp_ctrl_getmsg(fc, command);
 			snprintf(command, 127, "RETR %s", filename);
 			ftp_ctrl_getmsg(fc, command);
@@ -207,14 +209,14 @@ int ftp_ctrl_getfile(void *arg1, void *arg2)
 			if (0 < ret)
 			{
 				command[ret] = '\0';
-			    fprintf(stdout, command);
+			    fprintf(stdout, "%s", command);
 			}
 		}
 	}
 	else
 	{
 		ftp_ctrl_getmsg(fc, "PASV");
-		snprintf(fip, 15, "%u.%u.%u.%u", (fc->fdataaddr>>24)&0xff, (fc->fdataaddr>>16) & 0xff, (fc->fdataaddr>>8) & 0xff, fc->fdataaddr& 0xff);
+		snprintf(fip, 15, "%u.%u.%u.%u", (unsigned int)(fc->fdataaddr>>24)&0xff, (unsigned int)(fc->fdataaddr>>16) & 0xff, (unsigned int)(fc->fdataaddr>>8) & 0xff, (unsigned int)fc->fdataaddr& 0xff);
 		fprintf(stdout, "faddr:%s, port:%d\n", fip, fc->fdataport);	
 		snprintf(command, 127, "RETR %s", filename);
 		ftp_ctrl_getmsg(fc, command);
@@ -240,9 +242,11 @@ int ftp_ctrl_getfile(void *arg1, void *arg2)
 		if (0 < ret)
 		{
 			command[ret] = '\0';
-			fprintf(stdout, command);
+			fprintf(stdout, "%s", command);
 		}
 	}
+
+	return 0;
 }
 
 int ftp_ctrl_identify(void *arg1, void *arg2)
@@ -264,7 +268,7 @@ int ftp_ctrl_identify(void *arg1, void *arg2)
 	if (0 <= (ret = ftp_session_getreply(fc->serverfd, reply, 1024)))
 	{
 		reply[ret] = '\0';
-		fprintf(stdout, reply);
+		fprintf(stdout, "%s", reply);
 	}
 
 	fprintf(stdout, "Password:");
@@ -281,7 +285,7 @@ int ftp_ctrl_identify(void *arg1, void *arg2)
 	if (0 <= (ret = ftp_session_getreply(fc->serverfd, reply, 1024)))
 	{
 		reply[ret] = '\0';
-		fprintf(stdout, reply);
+		fprintf(stdout, "%s", reply);
 		fc->isidentified = FTP_IDENTIFY_VALID;
 	}
 
@@ -307,7 +311,7 @@ int ftp_ctrl_session(void *arg1, void *arg2)
 		if (0 <= (ret = ftp_session_getreply(fc->serverfd, reply, 1024)))
 		{
 			reply[ret] = '\0';
-			fprintf(stdout, reply);
+			fprintf(stdout, "%s", reply);
 		}
 
 		fprintf(stdout, "Name (%s: anonymous as default):", fc->ftpDomain);
@@ -349,7 +353,7 @@ int ftp_ctrl_proc(char *domain, int port)
 
 	while(1)
 	{
-		fprintf(stdout, FTP_COMMAND_PROMPT);
+		fprintf(stdout, "%s", FTP_COMMAND_PROMPT);
 		fgets(input, 127, stdin);
 		length = strlen(input);
 		input[length-1] = '\0';
